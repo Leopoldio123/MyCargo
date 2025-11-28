@@ -6,7 +6,7 @@
     <title>Заявка на перевозку</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 20px; }
+        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 20px; padding-bottom: 80px; }
         .container { max-width: 600px; margin: 0 auto; }
         h2 { border-bottom: 2px solid var(--tg-theme-button-color, #3390ec); padding-bottom: 10px; margin-top: 30px; }
         .card { background: var(--tg-theme-secondary-bg-color, #f5f5f5); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
@@ -32,45 +32,43 @@
 
     <div class="section">
         <h2>📍 Места погрузки</h2>
-        <div id="loadingPoints">
-            </div>
+        <div id="loadingPoints"></div>
         <button class="btn-add" onclick="addPoint('loading')">+ Добавить адрес погрузки</button>
     </div>
 
     <div class="section">
         <h2>🏁 Места выгрузки</h2>
-        <div id="unloadingPoints">
-            </div>
+        <div id="unloadingPoints"></div>
         <button class="btn-add" onclick="addPoint('unloading')">+ Добавить адрес выгрузки</button>
     </div>
 </div>
 
 <script>
-    let tg = window.Telegram.WebApp;
-    tg.expand(); // Раскрыть на весь экран
+    // === ВСТАВЬТЕ ВАШУ ССЫЛКУ НИЖЕ МЕЖДУ КАВЫЧЕК ===
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCDqocZ8FLKFToXMNA6YnUKrFqPu59hP2mYPF4dcfmRqwH0TJ1-afGWYowhqAalTbM/exec'; 
+    // ===============================================
 
-    // Функция создания карточки адреса
+    let tg = window.Telegram.WebApp;
+    tg.expand(); 
+
     function createPointHTML(type, index) {
-        let labelType = type === 'loading' ? 'Погрузка' : 'Выгрузка';
         return `
         <div class="card" id="${type}-${index}">
             <div class="section-title">Точка ${index + 1}</div>
             <label>Адрес</label>
-            <input type="text" class="address" placeholder="Город, улица, дом">
-            <label>Контактное лицо (ФИО)</label>
-            <input type="text" class="contactName" placeholder="Петров П.П.">
+            <input type="text" class="address" placeholder="Город, улица">
+            <label>Контактное лицо</label>
+            <input type="text" class="contactName" placeholder="Имя">
             <label>Должность</label>
-            <input type="text" class="contactPos" placeholder="Кладовщик">
+            <input type="text" class="contactPos" placeholder="Должность">
             <label>Телефон</label>
             <input type="tel" class="contactPhone" placeholder="+7...">
         </div>`;
     }
 
-    // Добавляем по одной точке сразу при старте
     addPoint('loading');
     addPoint('unloading');
 
-    // Функция добавления новой точки
     function addPoint(type) {
         let container = document.getElementById(type + 'Points');
         let count = container.children.length;
@@ -79,46 +77,6 @@
         container.appendChild(div);
     }
 
-    // Настройка главной кнопки Telegram
-    tg.MainButton.setText("ОТПРАВИТЬ ЗАЯВКУ");
-    tg.MainButton.show();
-
-    // Отправка данных
-    tg.MainButton.onClick(function() {
-        tg.MainButton.showProgress(); // Показать крутилку загрузки
-
-        // Собираем данные
-        let data = {
-            company: document.getElementById('companyName').value,
-            rep_name: document.getElementById('repName').value,
-            rep_phone: document.getElementById('repPhone').value,
-            loading: collectPoints('loading'),
-            unloading: collectPoints('unloading')
-        };
-
-        // ВАША ССЫЛКА НА GOOGLE SCRIPT (Я оставил вашу ссылку из прошлого сообщения)
-        let scriptURL = "https://script.google.com/macros/s/AKfycbxyZ8c5HJtwv1AS2mvpoh7IFJRR8dC6LnaxAuuA7fLEB1oiLuhVmEpH1Pj01XxHyiWK/exec";
-
-        // Отправляем запрос на сервер Google
-        fetch(scriptURL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }).then(res => {
-            // Когда данные ушли успешно
-            tg.MainButton.hideProgress();
-            tg.showAlert("Заявка успешно создана!");
-            tg.close(); // Закрываем окно
-        }).catch(err => {
-            tg.MainButton.hideProgress();
-            tg.showAlert("Ошибка отправки, попробуйте еще раз.");
-        });
-    });
-
-    // Сбор данных из динамических полей
     function collectPoints(type) {
         let container = document.getElementById(type + 'Points');
         let points = [];
@@ -132,6 +90,37 @@
         }
         return points;
     }
+
+    tg.MainButton.setText("ОТПРАВИТЬ ЗАЯВКУ");
+    tg.MainButton.show();
+
+    tg.MainButton.onClick(function() {
+        tg.MainButton.showProgress();
+
+        let data = {
+            company: document.getElementById('companyName').value,
+            rep_name: document.getElementById('repName').value,
+            rep_phone: document.getElementById('repPhone').value,
+            loading: collectPoints('loading'),
+            unloading: collectPoints('unloading')
+        };
+
+        // Отправка с mode: 'no-cors' - это важно для Google Scripts!
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(() => {
+            // При no-cors мы не знаем точного ответа, но считаем что ушло
+            tg.MainButton.hideProgress();
+            tg.showAlert("Заявка отправлена!");
+            tg.close();
+        }).catch(err => {
+            tg.MainButton.hideProgress();
+            tg.showAlert("Ошибка связи, проверьте интернет");
+        });
+    });
 </script>
 </body>
 </html>
