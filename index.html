@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка на перевозку</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h2 { border-bottom: 2px solid var(--tg-theme-button-color, #3390ec); padding-bottom: 10px; margin-top: 30px; }
+        .card { background: var(--tg-theme-secondary-bg-color, #f5f5f5); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 14px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn-add { background: transparent; color: var(--tg-theme-button-color, #3390ec); border: 1px dashed var(--tg-theme-button-color, #3390ec); width: 100%; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        .section-title { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Оформление заявки</h1>
+
+    <div class="section">
+        <h2>Заказчик</h2>
+        <label>Название компании</label>
+        <input type="text" id="companyName" placeholder="ООО Вектор">
+        <label>ФИО представителя</label>
+        <input type="text" id="repName" placeholder="Иванов И.И.">
+        <label>Контактный телефон</label>
+        <input type="tel" id="repPhone" placeholder="+7...">
+    </div>
+
+    <div class="section">
+        <h2>📍 Места погрузки</h2>
+        <div id="loadingPoints">
+            </div>
+        <button class="btn-add" onclick="addPoint('loading')">+ Добавить адрес погрузки</button>
+    </div>
+
+    <div class="section">
+        <h2>🏁 Места выгрузки</h2>
+        <div id="unloadingPoints">
+            </div>
+        <button class="btn-add" onclick="addPoint('unloading')">+ Добавить адрес выгрузки</button>
+    </div>
+</div>
+
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.expand(); // Раскрыть на весь экран
+
+    // Функция создания карточки адреса
+    function createPointHTML(type, index) {
+        let labelType = type === 'loading' ? 'Погрузка' : 'Выгрузка';
+        return `
+        <div class="card" id="${type}-${index}">
+            <div class="section-title">Точка ${index + 1}</div>
+            <label>Адрес</label>
+            <input type="text" class="address" placeholder="Город, улица, дом">
+            <label>Контактное лицо (ФИО)</label>
+            <input type="text" class="contactName" placeholder="Петров П.П.">
+            <label>Должность</label>
+            <input type="text" class="contactPos" placeholder="Кладовщик">
+            <label>Телефон</label>
+            <input type="tel" class="contactPhone" placeholder="+7...">
+        </div>`;
+    }
+
+    // Добавляем по одной точке сразу при старте
+    addPoint('loading');
+    addPoint('unloading');
+
+    // Функция добавления новой точки
+    function addPoint(type) {
+        let container = document.getElementById(type + 'Points');
+        let count = container.children.length;
+        let div = document.createElement('div');
+        div.innerHTML = createPointHTML(type, count);
+        container.appendChild(div);
+    }
+
+    // Настройка главной кнопки Telegram
+    tg.MainButton.setText("ОТПРАВИТЬ ЗАЯВКУ");
+    tg.MainButton.show();
+
+    // Отправка данных
+    tg.MainButton.onClick(function() {
+        // Собираем данные
+        let data = {
+            company: document.getElementById('companyName').value,
+            rep_name: document.getElementById('repName').value,
+            rep_phone: document.getElementById('repPhone').value,
+            loading: collectPoints('loading'),
+            unloading: collectPoints('unloading')
+        };
+        
+        // Отправляем данные боту (в формате JSON строки)
+        tg.sendData(JSON.stringify(data));
+    });
+
+    // Сбор данных из динамических полей
+    function collectPoints(type) {
+        let container = document.getElementById(type + 'Points');
+        let points = [];
+        for (let item of container.children) {
+            points.push({
+                address: item.querySelector('.address').value,
+                contact: item.querySelector('.contactName').value,
+                position: item.querySelector('.contactPos').value,
+                phone: item.querySelector('.contactPhone').value
+            });
+        }
+        return points;
+    }
+</script>
+</body>
+</html>
