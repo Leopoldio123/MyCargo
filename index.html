@@ -84,7 +84,40 @@
     tg.MainButton.show();
 
     // Отправка данных
+   // Отправка данных
     tg.MainButton.onClick(function() {
+        tg.MainButton.showProgress(); // Показать крутилку загрузки
+
+        // Собираем данные
+        let data = {
+            company: document.getElementById('companyName').value,
+            rep_name: document.getElementById('repName').value,
+            rep_phone: document.getElementById('repPhone').value,
+            loading: collectPoints('loading'),
+            unloading: collectPoints('unloading')
+        };
+
+        // URL вашего Google Script (Вставьте свой!)
+        let scriptURL = "https://script.google.com/macros/s/AKfycbxyZ8c5HJtwv1AS2mvpoh7IFJRR8dC6LnaxAuuA7fLEB1oiLuhVmEpH1Pj01XxHyiWK/exec";
+
+        // Отправляем запрос на сервер Google
+        fetch(scriptURL, {
+            method: 'POST',
+            mode: 'no-cors', // Важно для Google Scripts
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(res => {
+            // Когда данные ушли успешно
+            tg.MainButton.hideProgress();
+            tg.showAlert("Заявка успешно создана!");
+            tg.close(); // Закрываем окно
+        }).catch(err => {
+            tg.MainButton.hideProgress();
+            tg.showAlert("Ошибка отправки, попробуйте еще раз.");
+        });
+    });
         // Собираем данные
         let data = {
             company: document.getElementById('companyName').value,
@@ -114,4 +147,5 @@
     }
 </script>
 </body>
+
 </html>
