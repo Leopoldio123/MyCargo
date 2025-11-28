@@ -84,7 +84,6 @@
     tg.MainButton.show();
 
     // Отправка данных
-   // Отправка данных
     tg.MainButton.onClick(function() {
         tg.MainButton.showProgress(); // Показать крутилку загрузки
 
@@ -97,13 +96,13 @@
             unloading: collectPoints('unloading')
         };
 
-        // URL вашего Google Script (Вставьте свой!)
+        // ВАША ССЫЛКА НА GOOGLE SCRIPT (Я оставил вашу ссылку из прошлого сообщения)
         let scriptURL = "https://script.google.com/macros/s/AKfycbxyZ8c5HJtwv1AS2mvpoh7IFJRR8dC6LnaxAuuA7fLEB1oiLuhVmEpH1Pj01XxHyiWK/exec";
 
         // Отправляем запрос на сервер Google
         fetch(scriptURL, {
             method: 'POST',
-            mode: 'no-cors', // Важно для Google Scripts
+            mode: 'no-cors',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -117,18 +116,6 @@
             tg.MainButton.hideProgress();
             tg.showAlert("Ошибка отправки, попробуйте еще раз.");
         });
-    });
-        // Собираем данные
-        let data = {
-            company: document.getElementById('companyName').value,
-            rep_name: document.getElementById('repName').value,
-            rep_phone: document.getElementById('repPhone').value,
-            loading: collectPoints('loading'),
-            unloading: collectPoints('unloading')
-        };
-        
-        // Отправляем данные боту (в формате JSON строки)
-        tg.sendData(JSON.stringify(data));
     });
 
     // Сбор данных из динамических полей
@@ -147,5 +134,4 @@
     }
 </script>
 </body>
-
 </html>
