@@ -15,7 +15,7 @@
         .btn-add { background: transparent; color: var(--tg-theme-button-color, #3390ec); border: 2px dashed var(--tg-theme-button-color, #3390ec); width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold; }
         .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; color: var(--tg-theme-text-color, #000); }
         .row { display: flex; gap: 10px; }
-        .row input { width: 50%; }
+        .row div { width: 50%; }
     </style>
 </head>
 <body>
@@ -27,19 +27,19 @@
         
         <label>Тип контрагента</label>
         <select id="clientType">
-            <option value="Юридическое лицо">Юридическое лицо</option>
+            <option value="Юр. Лицо">Юридическое лицо</option>
             <option value="ИП">Индивидуальный предприниматель</option>
-            <option value="Частное лицо">Частное лицо</option>
+            <option value="Физ. Лицо">Частное лицо</option>
         </select>
 
         <label>Наименование / ФИО</label>
-        <input type="text" id="companyName" placeholder="Например: ООО Ромашка">
+        <input type="text" id="companyName" placeholder="ООО Ромашка">
 
         <label>Представитель (ФИО)</label>
         <input type="text" id="repName" placeholder="Иванов Иван">
 
         <label>Контактный телефон</label>
-        <input type="tel" id="repPhone" placeholder="+7...">
+        <input type="tel" id="repPhone" class="phone-mask" placeholder="+7 (999) 000-00-00" value="+7">
     </div>
 
     <div class="section">
@@ -57,13 +57,40 @@
 
 <script>
     // === ВСТАВЬТЕ ВАШУ ССЫЛКУ НИЖЕ ===
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcR-gp4slybVKvF2CPZik5EhuIQdMRVb95c4nL0pl0qIH0kd8CM8UwS5rRh9u9i5eK/exec'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx9jajpxaru-AzY6bUAM4sGyd7dCh3YCZtRCKMxZYnqkpsAQ0223KmQS0BhQSF4aie6/exec'; 
     // =================================
 
     let tg = window.Telegram.WebApp;
     tg.expand(); 
 
-    // Шаблон карточки ПОГРУЗКИ
+    // Логика маски телефона (+7 и 10 цифр)
+    function applyPhoneMask(input) {
+        input.addEventListener('input', function(e) {
+            let value = input.value.replace(/\D/g, ''); // Удаляем всё кроме цифр
+            if (value.startsWith('7')) value = value.substring(1); // Если есть 7 в начале, убираем для обработки
+            if (value.startsWith('8')) value = value.substring(1); // Если начали с 8
+
+            value = value.substring(0, 10); // Ограничиваем 10 цифрами
+
+            let formatted = '+7';
+            if (value.length > 0) formatted += ' (' + value.substring(0, 3);
+            if (value.length >= 3) formatted += ') ' + value.substring(3, 6);
+            if (value.length >= 6) formatted += '-' + value.substring(6, 8);
+            if (value.length >= 8) formatted += '-' + value.substring(8, 10);
+            
+            input.value = formatted;
+        });
+        // Запрещаем стирать +7
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && input.value.length <= 2) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Применяем маску к главному телефону сразу
+    applyPhoneMask(document.getElementById('repPhone'));
+
     function createLoadingHTML(index) {
         return `
         <div class="card loading-card">
@@ -73,57 +100,63 @@
             <input type="text" class="address" placeholder="Город, улица, дом">
 
             <label>Характер груза</label>
-            <input type="text" class="cargoType" placeholder="Напр: Оборудование, Паллеты">
+            <input type="text" class="cargoType" placeholder="Напр: Оборудование">
 
             <div class="row">
                 <div>
                     <label>Вес (кг)</label>
-                    <input type="number" class="cargoWeight" placeholder="1500">
+                    <input type="number" class="cargoWeight" placeholder="100">
                 </div>
                 <div>
-                    <label>Габариты (ДхШхВ)</label>
-                    <input type="text" class="cargoDims" placeholder="1.2 x 0.8 x 2">
+                    <label>Габариты</label>
+                    <input type="text" class="cargoDims" placeholder="ДхШхВ">
                 </div>
             </div>
 
             <label>Тип погрузки</label>
-            <input type="text" class="loadType" placeholder="Напр: Задняя, Боковая">
+            <input type="text" class="loadType" placeholder="Задняя / Боковая">
 
-            <label>Контактное лицо на погрузке</label>
-            <input type="text" class="contactName" placeholder="ФИО, Телефон">
+            <label>Контактное лицо</label>
+            <input type="text" class="contactName" placeholder="ФИО">
+
+            <label>Телефон на погрузке</label>
+            <input type="tel" class="contactPhone phone-mask" placeholder="+7..." value="+7">
         </div>`;
     }
 
-    // Шаблон карточки ВЫГРУЗКИ
     function createUnloadingHTML(index) {
         return `
         <div class="card unloading-card">
             <div class="section-title">Точка выгрузки ${index + 1}</div>
             
             <label>Адрес выгрузки</label>
-            <input type="text" class="address" placeholder="Город, улица, дом">
+            <input type="text" class="address" placeholder="Город, улица">
 
             <label>Тип выгрузки</label>
-            <input type="text" class="unloadType" placeholder="Напр: Задняя, Ручная">
+            <input type="text" class="unloadType" placeholder="Задняя / Боковая">
 
-            <label>Документы на выгрузке</label>
+            <label>Документы</label>
             <select class="docsType">
                 <option value="Печать">Печать</option>
                 <option value="Доверенность">Доверенность</option>
                 <option value="Без печати">Без печати</option>
             </select>
 
-            <label>Контактное лицо на выгрузке</label>
-            <input type="text" class="contactName" placeholder="ФИО, Телефон">
+            <label>Контактное лицо</label>
+            <input type="text" class="contactName" placeholder="ФИО">
+
+            <label>Телефон на выгрузке</label>
+            <input type="tel" class="contactPhone phone-mask" placeholder="+7..." value="+7">
         </div>`;
     }
 
-    // Функции добавления
     function addLoadingPoint() {
         let container = document.getElementById('loadingPoints');
         let div = document.createElement('div');
         div.innerHTML = createLoadingHTML(container.children.length);
         container.appendChild(div);
+        // Применяем маску к новому полю телефона
+        applyPhoneMask(div.querySelector('.phone-mask'));
     }
 
     function addUnloadingPoint() {
@@ -131,20 +164,20 @@
         let div = document.createElement('div');
         div.innerHTML = createUnloadingHTML(container.children.length);
         container.appendChild(div);
+        // Применяем маску к новому полю телефона
+        applyPhoneMask(div.querySelector('.phone-mask'));
     }
 
-    // Добавляем по одной точке при старте
     addLoadingPoint();
     addUnloadingPoint();
 
     tg.MainButton.setText("ОТПРАВИТЬ ЗАЯВКУ");
     tg.MainButton.show();
 
-    // СБОР ДАННЫХ И ОТПРАВКА
     tg.MainButton.onClick(function() {
         tg.MainButton.showProgress();
 
-        // Собираем погрузку
+        // Сбор данных погрузки
         let loadPoints = [];
         document.querySelectorAll('.loading-card').forEach(card => {
             loadPoints.push({
@@ -153,18 +186,20 @@
                 weight: card.querySelector('.cargoWeight').value,
                 dims: card.querySelector('.cargoDims').value,
                 type: card.querySelector('.loadType').value,
-                contact: card.querySelector('.contactName').value
+                contact: card.querySelector('.contactName').value,
+                phone: card.querySelector('.contactPhone').value
             });
         });
 
-        // Собираем выгрузку
+        // Сбор данных выгрузки
         let unloadPoints = [];
         document.querySelectorAll('.unloading-card').forEach(card => {
             unloadPoints.push({
                 address: card.querySelector('.address').value,
                 type: card.querySelector('.unloadType').value,
                 docs: card.querySelector('.docsType').value,
-                contact: card.querySelector('.contactName').value
+                contact: card.querySelector('.contactName').value,
+                phone: card.querySelector('.contactPhone').value
             });
         });
 
