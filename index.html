@@ -3,234 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Заявка на перевозку</title>
+    <title>Логистика</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 20px; padding-bottom: 80px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        h2 { border-bottom: 2px solid var(--tg-theme-button-color, #3390ec); padding-bottom: 10px; margin-top: 30px; font-size: 18px; }
-        .card { background: var(--tg-theme-secondary-bg-color, #f5f5f5); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e0e0e0; }
-        label { display: block; margin-top: 10px; font-weight: bold; font-size: 13px; color: var(--tg-theme-hint-color, #555); }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; background: #fff; }
-        .btn-add { background: transparent; color: var(--tg-theme-button-color, #3390ec); border: 2px dashed var(--tg-theme-button-color, #3390ec); width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold; }
-        .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; color: var(--tg-theme-text-color, #000); }
+        body { font-family: -apple-system, sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 15px; padding-bottom: 80px; }
+        .section { margin-bottom: 25px; }
+        h2 { font-size: 18px; border-bottom: 2px solid #3390ec; padding-bottom: 8px; margin-bottom: 15px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border 0.3s; }
+        input.error { border: 2px solid #ff4d4d; background-color: #fff0f0; } /* Стиль ошибки */
+        label { font-size: 12px; color: #777; font-weight: bold; margin-bottom: 4px; display: block; }
+        .card { background: var(--tg-theme-secondary-bg-color, #f7f7f7); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; }
         .row { display: flex; gap: 10px; }
         .row div { width: 50%; }
+        .btn-add { width: 100%; padding: 12px; border: 2px dashed #3390ec; color: #3390ec; background: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Оформление груза</h1>
 
     <div class="section">
         <h2>👤 Заказчик</h2>
-        
-        <label>Тип контрагента</label>
+        <label>Юр. статус</label>
         <select id="clientType">
-            <option value="Юр. Лицо">Юридическое лицо</option>
-            <option value="ИП">Индивидуальный предприниматель</option>
-            <option value="Физ. Лицо">Частное лицо</option>
+            <option>Юр. Лицо</option>
+            <option>ИП</option>
+            <option>Физ. Лицо</option>
         </select>
-
-        <label>Наименование / ФИО</label>
-        <input type="text" id="companyName" placeholder="ООО Ромашка">
-
-        <label>Представитель (ФИО)</label>
-        <input type="text" id="repName" placeholder="Иванов Иван">
-
-        <label>Контактный телефон</label>
-        <input type="tel" id="repPhone" class="phone-mask" placeholder="+7 (999) 000-00-00" value="+7">
+        <input type="text" id="companyName" placeholder="Название компании / ФИО">
+        <input type="text" id="repName" placeholder="Имя представителя">
+        <input type="tel" id="repPhone" class="phone-mask" placeholder="+7..." value="+7">
     </div>
 
     <div class="section">
-        <h2>⬆️ Места погрузки</h2>
+        <h2>⬆️ Погрузка</h2>
         <div id="loadingPoints"></div>
-        <button class="btn-add" onclick="addLoadingPoint()">+ Добавить адрес погрузки</button>
+        <button class="btn-add" onclick="addPoint('load')">+ Добавить точку</button>
     </div>
 
     <div class="section">
-        <h2>⬇️ Места выгрузки</h2>
+        <h2>⬇️ Выгрузка</h2>
         <div id="unloadingPoints"></div>
-        <button class="btn-add" onclick="addUnloadingPoint()">+ Добавить адрес выгрузки</button>
+        <button class="btn-add" onclick="addPoint('unload')">+ Добавить точку</button>
     </div>
-</div>
 
 <script>
-    // === ВСТАВЬТЕ ВАШУ ССЫЛКУ НИЖЕ ===
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyM66jsyYOKxIw-GlSefJpZN4vZywhVWwyfYkeYlUjErnxD0qg1ev6NrWppNne__YV1/exec'; 
-    // =================================
+    // 🔥 ВСТАВЬТЕ СВЕЖУЮ ССЫЛКУ ПОСЛЕ ДЕПЛОЯ
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwkwMeo9VG5FrMUv98zBE89CSxdB5mVR-C4V8dhVhEW_eMmqlWG1WSU6k_olWxPX0id/exec'; 
 
     let tg = window.Telegram.WebApp;
     tg.expand(); 
 
-    // Логика маски телефона (+7 и 10 цифр)
-    function applyPhoneMask(input) {
-        input.addEventListener('input', function(e) {
-            let value = input.value.replace(/\D/g, ''); // Удаляем всё кроме цифр
-            if (value.startsWith('7')) value = value.substring(1); // Если есть 7 в начале, убираем для обработки
-            if (value.startsWith('8')) value = value.substring(1); // Если начали с 8
+    // Маска телефона
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('phone-mask')) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.startsWith('7')) v = v.substring(1);
+            if (v.startsWith('8')) v = v.substring(1);
+            v = v.substring(0, 10);
+            let res = '+7';
+            if (v.length > 0) res += ' (' + v.substring(0,3);
+            if (v.length >= 3) res += ') ' + v.substring(3,6);
+            if (v.length >= 6) res += '-' + v.substring(6,8);
+            if (v.length >= 8) res += '-' + v.substring(8,10);
+            e.target.value = res;
+        }
+        // Убираем красную рамку, если начали печатать
+        if (e.target.classList.contains('error')) {
+            e.target.classList.remove('error');
+        }
+    });
 
-            value = value.substring(0, 10); // Ограничиваем 10 цифрами
-
-            let formatted = '+7';
-            if (value.length > 0) formatted += ' (' + value.substring(0, 3);
-            if (value.length >= 3) formatted += ') ' + value.substring(3, 6);
-            if (value.length >= 6) formatted += '-' + value.substring(6, 8);
-            if (value.length >= 8) formatted += '-' + value.substring(8, 10);
+    function addPoint(type) {
+        let container = document.getElementById(type === 'load' ? 'loadingPoints' : 'unloadingPoints');
+        let idx = container.children.length + 1;
+        let html = `
+        <div class="card ${type}-card">
+            <label>${type === 'load' ? 'Адрес погрузки' : 'Адрес выгрузки'} ${idx}</label>
+            <input type="text" class="address" placeholder="Город, улица">
             
-            input.value = formatted;
-        });
-        // Запрещаем стирать +7
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Backspace' && input.value.length <= 2) {
-                e.preventDefault();
+            ${type === 'load' ? `
+            <div class="row">
+                <div><label>Груз</label><input type="text" class="cargo" placeholder="Что везем?"></div>
+                <div><label>Вес (кг)</label><input type="number" class="weight" placeholder="0"></div>
+            </div>
+            <label>Габариты</label><input type="text" class="dims" placeholder="ДхШхВ">
+            ` : `
+            <label>Документы</label>
+            <select class="docs">
+                <option>Печать</option><option>Доверенность</option><option>Без печати</option>
+            </select>
+            `}
+            
+            <label>Тип ${type === 'load' ? 'погрузки' : 'выгрузки'}</label>
+            <input type="text" class="type" placeholder="Задняя / Боковая">
+            
+            <label>Контактное лицо</label>
+            <input type="text" class="contact" placeholder="Имя">
+            <label>Телефон</label>
+            <input type="tel" class="phone phone-mask" placeholder="+7..." value="+7">
+        </div>`;
+        
+        let div = document.createElement('div');
+        div.innerHTML = html;
+        container.appendChild(div);
+    }
+
+    // 🔥 ФУНКЦИЯ ПРОВЕРКИ (ВАЛИДАЦИЯ)
+    function validateForm() {
+        let isValid = true;
+        let firstError = null;
+
+        // Проверяем главные поля
+        let requiredIds = ['companyName', 'repName', 'repPhone'];
+        requiredIds.forEach(id => {
+            let el = document.getElementById(id);
+            if (!el.value || el.value.length < 3) {
+                el.classList.add('error');
+                isValid = false;
+                if(!firstError) firstError = el;
             }
         });
+
+        // Проверяем все текстовые поля в карточках
+        document.querySelectorAll('.address, .cargo, .weight, .dims, .type, .contact, .phone').forEach(el => {
+            if (!el.value) {
+                el.classList.add('error');
+                isValid = false;
+                if(!firstError) firstError = el;
+            }
+        });
+
+        if (!isValid) {
+            tg.showAlert("Пожалуйста, заполните все выделенные поля!");
+            if(firstError) firstError.scrollIntoView({behavior: "smooth", block: "center"});
+        }
+
+        return isValid;
     }
 
-    // Применяем маску к главному телефону сразу
-    applyPhoneMask(document.getElementById('repPhone'));
+    addPoint('load');
+    addPoint('unload');
 
-    function createLoadingHTML(index) {
-        return `
-        <div class="card loading-card">
-            <div class="section-title">Точка погрузки ${index + 1}</div>
-            
-            <label>Адрес погрузки</label>
-            <input type="text" class="address" placeholder="Город, улица, дом">
-
-            <label>Характер груза</label>
-            <input type="text" class="cargoType" placeholder="Напр: Оборудование">
-
-            <div class="row">
-                <div>
-                    <label>Вес (кг)</label>
-                    <input type="number" class="cargoWeight" placeholder="100">
-                </div>
-                <div>
-                    <label>Габариты</label>
-                    <input type="text" class="cargoDims" placeholder="ДхШхВ">
-                </div>
-            </div>
-
-            <label>Тип погрузки</label>
-            <input type="text" class="loadType" placeholder="Задняя / Боковая">
-
-            <label>Контактное лицо</label>
-            <input type="text" class="contactName" placeholder="ФИО">
-
-            <label>Телефон на погрузке</label>
-            <input type="tel" class="contactPhone phone-mask" placeholder="+7..." value="+7">
-        </div>`;
-    }
-
-    function createUnloadingHTML(index) {
-        return `
-        <div class="card unloading-card">
-            <div class="section-title">Точка выгрузки ${index + 1}</div>
-            
-            <label>Адрес выгрузки</label>
-            <input type="text" class="address" placeholder="Город, улица">
-
-            <label>Тип выгрузки</label>
-            <input type="text" class="unloadType" placeholder="Задняя / Боковая">
-
-            <label>Документы</label>
-            <select class="docsType">
-                <option value="Печать">Печать</option>
-                <option value="Доверенность">Доверенность</option>
-                <option value="Без печати">Без печати</option>
-            </select>
-
-            <label>Контактное лицо</label>
-            <input type="text" class="contactName" placeholder="ФИО">
-
-            <label>Телефон на выгрузке</label>
-            <input type="tel" class="contactPhone phone-mask" placeholder="+7..." value="+7">
-        </div>`;
-    }
-
-    function addLoadingPoint() {
-        let container = document.getElementById('loadingPoints');
-        let div = document.createElement('div');
-        div.innerHTML = createLoadingHTML(container.children.length);
-        container.appendChild(div);
-        // Применяем маску к новому полю телефона
-        applyPhoneMask(div.querySelector('.phone-mask'));
-    }
-
-    function addUnloadingPoint() {
-        let container = document.getElementById('unloadingPoints');
-        let div = document.createElement('div');
-        div.innerHTML = createUnloadingHTML(container.children.length);
-        container.appendChild(div);
-        // Применяем маску к новому полю телефона
-        applyPhoneMask(div.querySelector('.phone-mask'));
-    }
-
-    addLoadingPoint();
-    addUnloadingPoint();
-
-    tg.MainButton.setText("ОТПРАВИТЬ ЗАЯВКУ");
+    tg.MainButton.setText("ОФОРМИТЬ ЗАЯВКУ");
     tg.MainButton.show();
 
-    tg.MainButton.onClick(function() {
+    tg.MainButton.onClick(() => {
+        // Сначала проверка! Если есть ошибки, останавливаемся.
+        if (!validateForm()) return;
+
         tg.MainButton.showProgress();
-
-        // Сбор данных погрузки
-        let loadPoints = [];
-        document.querySelectorAll('.loading-card').forEach(card => {
-            loadPoints.push({
-                address: card.querySelector('.address').value,
-                cargo: card.querySelector('.cargoType').value,
-                weight: card.querySelector('.cargoWeight').value,
-                dims: card.querySelector('.cargoDims').value,
-                type: card.querySelector('.loadType').value,
-                contact: card.querySelector('.contactName').value,
-                phone: card.querySelector('.contactPhone').value
-            });
-        });
-
-        // Сбор данных выгрузки
-        let unloadPoints = [];
-        document.querySelectorAll('.unloading-card').forEach(card => {
-            unloadPoints.push({
-                address: card.querySelector('.address').value,
-                type: card.querySelector('.unloadType').value,
-                docs: card.querySelector('.docsType').value,
-                contact: card.querySelector('.contactName').value,
-                phone: card.querySelector('.contactPhone').value
-            });
-        });
 
         let data = {
             client_type: document.getElementById('clientType').value,
             company: document.getElementById('companyName').value,
             rep_name: document.getElementById('repName').value,
             rep_phone: document.getElementById('repPhone').value,
-            loading: loadPoints,
-            unloading: unloadPoints
+            loading: [],
+            unloading: []
         };
+
+        // Собираем погрузку
+        document.querySelectorAll('.load-card').forEach(el => {
+            data.loading.push({
+                address: el.querySelector('.address').value,
+                cargo: el.querySelector('.cargo').value,
+                weight: el.querySelector('.weight').value,
+                dims: el.querySelector('.dims').value,
+                type: el.querySelector('.type').value,
+                contact: el.querySelector('.contact').value,
+                phone: el.querySelector('.phone').value
+            });
+        });
+
+        // Собираем выгрузку
+        document.querySelectorAll('.unload-card').forEach(el => {
+            data.unloading.push({
+                address: el.querySelector('.address').value,
+                type: el.querySelector('.type').value,
+                docs: el.querySelector('.docs').value,
+                contact: el.querySelector('.contact').value,
+                phone: el.querySelector('.phone').value
+            });
+        });
 
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         }).then(() => {
             tg.MainButton.hideProgress();
-            tg.showAlert("Заявка успешно отправлена!");
+            tg.showAlert("Заявка принята!");
             tg.close();
-        }).catch(err => {
+        }).catch(() => {
             tg.MainButton.hideProgress();
-            tg.showAlert("Ошибка связи.");
+            tg.showAlert("Ошибка сети");
         });
     });
 </script>
 </body>
 </html>
-
-
-
-
-
